@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador de Rutas - OpenRouteService vs GraphHopper</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body { display: flex; flex-direction: column; height: 100vh; margin: 0; font-family: Arial, sans-serif; }
+        header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
+        .container { display: flex; flex: 1; }
+        .sidebar { width: 350px; background: white; padding: 1rem; overflow-y: auto; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+        #map { flex: 1; height: 100%; }
+        input, select, button { width: 100%; margin: 0.25rem 0; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #3498db; color: white; cursor: pointer; border: none; }
+        button:hover { background: #2980b9; }
+        .results { margin-top: 1rem; }
+        .route-option { padding: 0.5rem; margin-bottom: 0.5rem; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+        .best-route { border: 2px solid #27ae60; background: #eafaf1; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Comparador de Rutas Óptimas</h1>
+        <p>OpenRouteService vs GraphHopper</p>
+    </header>
+
+    <div class="container">
+        <div class="sidebar">
+            <label>API Key OpenRouteService:</label>
+            <input type="text" id="ors-key" placeholder="Ingresa tu clave ORS">
+            <label>API Key GraphHopper:</label>
+            <input type="text" id="gh-key" placeholder="Ingresa tu clave GraphHopper">
+
+            <label>Origen:</label>
+            <input type="text" id="origin" placeholder="Ej: Puerta del Sol, Madrid">
+            <label>Destino:</label>
+            <input type="text" id="destination" placeholder="Ej: Estadio Bernabéu, Madrid">
+
+            <label>Punto intermedio:</label>
+            <div style="display:flex;">
+                <input type="text" id="waypoint" placeholder="Agregar parada">
+                <button id="add-waypoint" style="width:auto; margin-left:4px;">+</button>
+            </div>
+
+            <div id="waypoints-container"></div>
+
+            <label>Tipo de vehículo:</label>
+            <select id="vehicle-type">
+                <option value="car">Coche</option>
+                <option value="bike">Bicicleta</option>
+                <option value="foot">A pie</option>
+            </select>
+
+            <label>Factor de tráfico:</label>
+            <select id="traffic-option">
+                <option value="0">Sin tráfico</option>
+                <option value="10">+10%</option>
+                <option value="20">+20%</option>
+                <option value="30">+30%</option>
+            </select>
+
+            <button id="calculate">Calcular Rutas</button>
+
+            <div class="results" id="results"></div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([40.4168, -3.7038], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        let waypoints = [];
+        let markers = [], polylines = [], routes = [];
+
+        document.getElementById('add-waypoint').addEventListener('click', () => {
+            const wp = document.getElementById('waypoint').value.trim();
+            if(wp){ waypoints.push(wp); updateWaypoints(); document.getElementById('waypoint').value=''; }
+        });
+
+        function updateWaypoints(){
+            const container = document.getElementById('waypoints-container');
+            container.innerHTML = '';
+            waypoints.forEach((wp,i)=>{
+                const div = document.createElement('div');
+                div.textContent = wp;
+                const btn = document.createElement('button');
+                btn.textContent='X';
+                btn.onclick=()=>{ waypoints.splice(i,1); updateWaypoints(); };
+                div.appendChild(btn);
+                container.appendChild(div);
+            });
+        }
+
+        document.getElementById('calculate').addEventListener('click', calculateRoutes);
+
+        async function geocode(address){
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+            const data = await res.json();
+            if(!data.length) throw new Error(`No encontrado: ${address}`);
+            return {lat:+data[0].lat,lng:+data[0].lon};
+        }
+
+        async function calculateRoutes(){
+            clearMap();
+            const origin = document.getElementById('origin').value;
+            const dest = document.getElementById('destination').value;
+            const vehicle = document.getElementById('vehicle-type').value;
+            const orsKey = document.getElementById('ors-key').value;
+            const ghKey = document.getElementById('gh-key').value;
+
+            if(!origin||!dest||!orsKey||!ghKey){ alert('Ingresa origen, destino y ambas API keys'); return; }
+
+            const points = [origin, ...waypoints, dest];
+            const coords = await Promise.all(points.map(geocode));
+
+            coords.forEach((c,i)=>{ markers.push(L.marker([c.lat,c.lng]).addTo(map).bindPopup(points[i])); });
+            map.fitBounds(L.featureGroup(markers).getBounds().pad(0.2));
+
+            const [orsRoute, ghRoute] = await Promise.all([
+                routeORS(coords, vehicle, orsKey),
+                routeGH(coords, vehicle, ghKey)
+            ]);
+
+            routes = [orsRoute, ghRoute];
+            displayResults();
+        }
+
+        async function routeORS(coords, vehicle, key){
+            let profile = vehicle==='bike'? 'cycling-regular': vehicle==='foot'? 'foot-walking':'driving-car';
+            const res = await fetch(`https://api.openrouteservice.org/v2/directions/${profile}/geojson`,{
+                method:'POST', headers:{'Authorization':key,'Content-Type':'application/json'},
+                body:JSON.stringify({coordinates:coords.map(c=>[c.lng,c.lat])})
+            });
+            const data = await res.json();
+            const route = data.features[0];
+            const leafletCoords = route.geometry.coordinates.map(c=>[c[1],c[0]]);
+            polylines.push(L.polyline(leafletCoords,{color:'green'}).addTo(map)); // color verde
+            return {api:'OpenRouteService',distance:(route.properties.summary.distance/1000).toFixed(1),duration:(route.properties.summary.duration/60).toFixed(0)};
+        }
+
+        async function routeGH(coords, vehicle, key){
+            let profile = vehicle==='bike'? 'bike': vehicle==='foot'? 'foot':'car';
+            const points = coords.map(c=>`point=${c.lat},${c.lng}`).join('&');
+            const res = await fetch(`https://graphhopper.com/api/1/route?${points}&profile=${profile}&locale=es&key=${key}&instructions=false`);
+            const data = await res.json();
+            const path = data.paths[0];
+            const leafletCoords = decodePolyline(path.points);
+            polylines.push(L.polyline(leafletCoords,{color:'blue'}).addTo(map)); // color azul
+            return {api:'GraphHopper',distance:(path.distance/1000).toFixed(1),duration:(path.time/60000).toFixed(0)};
+        }
+
+        function decodePolyline(encoded){
+            let points=[],index=0,lat=0,lng=0;
+            while(index<encoded.length){
+                let b,shift=0,result=0;
+                do{b=encoded.charCodeAt(index++)-63;result|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);
+                let dlat=((result&1)?~(result>>1):(result>>1));
+                lat+=dlat;
+                shift=0;result=0;
+                do{b=encoded.charCodeAt(index++)-63;result|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);
+                let dlng=((result&1)?~(result>>1):(result>>1));
+                lng+=dlng;
+                points.push([lat*1e-5,lng*1e-5]);
+            }
+            return points;
+        }
+
+        function displayResults(){
+            const container=document.getElementById('results');
+            container.innerHTML='';
+            const trafficPercent = parseInt(document.getElementById('traffic-option').value);
+
+            let bestIndex=0; 
+            let bestTime=+routes[0].duration;
+
+            const adjustedRoutes = routes.map(r=>{
+                let dur = +r.duration;
+                if(trafficPercent>0) dur = Math.round(dur * (1 + trafficPercent/100));
+                return {...r, duration:dur};
+            });
+
+            for(let i=1;i<adjustedRoutes.length;i++){ 
+                if(+adjustedRoutes[i].duration<bestTime){
+                    bestTime=+adjustedRoutes[i].duration;
+                    bestIndex=i;
+                } 
+            }
+
+            adjustedRoutes.forEach((r,i)=>{
+                const div=document.createElement('div');
+                div.className='route-option'+(i===bestIndex?' best-route':'');
+                div.innerHTML=`<b>${r.api}</b><br>Distancia: ${r.distance} km<br>Duración: ${r.duration} min` + (trafficPercent>0?' (con tráfico)':'');
+                container.appendChild(div);
+            });
+        }
+
+        function clearMap(){ 
+            markers.forEach(m=>map.removeLayer(m)); 
+            markers=[]; 
+            polylines.forEach(p=>map.removeLayer(p)); 
+            polylines=[]; 
+        }
+    </script>
+</body>
+</html>

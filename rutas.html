@@ -6,17 +6,151 @@
     <title>Comparador de Rutas - OpenRouteService vs GraphHopper</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        body { display: flex; flex-direction: column; height: 100vh; margin: 0; font-family: Arial, sans-serif; }
-        header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
-        .container { display: flex; flex: 1; }
-        .sidebar { width: 350px; background: white; padding: 1rem; overflow-y: auto; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
-        #map { flex: 1; height: 100%; }
-        input, select, button { width: 100%; margin: 0.25rem 0; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
-        button { background: #3498db; color: white; cursor: pointer; border: none; }
-        button:hover { background: #2980b9; }
-        .results { margin-top: 1rem; }
-        .route-option { padding: 0.5rem; margin-bottom: 0.5rem; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
-        .best-route { border: 2px solid #27ae60; background: #eafaf1; }
+        body { 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            margin: 0; 
+            font-family: Arial, sans-serif; 
+        }
+        header { 
+            background: #7a8c5a; 
+            color: white; 
+            padding: 1rem; 
+            text-align: center; 
+        }
+        .container { 
+            display: flex; 
+            flex: 1; 
+        }
+        .sidebar { 
+            width: 350px; 
+            background: white; 
+            padding: 0.75rem; 
+            overflow: hidden; 
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1); 
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        #map { 
+            flex: 1; 
+            height: 100%; 
+        }
+        .sidebar label {
+            display: block;
+            margin: 0.25rem 0 0.1rem 0;
+            font-weight: bold;
+            color: #7a8c5a;
+            font-size: 13px;
+        }
+        .sidebar input, 
+        .sidebar select { 
+            width: 100%; 
+            margin: 0 0 0.25rem 0; 
+            padding: 0.5rem; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 6px; 
+            font-size: 13px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        .sidebar input:focus, 
+        .sidebar select:focus {
+            outline: none;
+            border-color: #8fa573;
+            box-shadow: 0 0 0 3px rgba(143, 165, 115, 0.1);
+        }
+        .sidebar button { 
+            width: 100%; 
+            margin: 0.25rem 0; 
+            padding: 0.5rem; 
+            background: #8fa573; 
+            color: white; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .sidebar button:hover { 
+            background: #7a8c5a; 
+        }
+        .waypoint-container {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 0.25rem;
+        }
+        .waypoint-container input {
+            flex: 1;
+            margin: 0;
+        }
+        .waypoint-container button {
+            width: auto;
+            min-width: 40px;
+            margin: 0;
+            padding: 0.5rem;
+        }
+        .waypoints-list {
+            margin-bottom: 0.5rem;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        .waypoint-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.35rem;
+            margin: 0.15rem 0;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .waypoint-item button {
+            width: auto;
+            min-width: 25px;
+            margin: 0;
+            padding: 0.2rem 0.4rem;
+            background: #e74c3c;
+            font-size: 11px;
+        }
+        .waypoint-item button:hover {
+            background: #c0392b;
+        }
+        .results { 
+            margin-top: 0.5rem; 
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+        .route-option { 
+            padding: 0.6rem; 
+            margin-bottom: 0.4rem; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            background: white;
+            font-size: 12px;
+        }
+        .route-option:hover {
+            border-color: #8fa573;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .best-route { 
+            border: 2px solid #27ae60; 
+            background: #eafaf1; 
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.2);
+        }
+        .vehicle-section,
+        .traffic-section {
+            margin: 0.5rem 0;
+        }
+        .calculate-section {
+            margin: 0.75rem 0;
+        }
     </style>
 </head>
 <body>
@@ -27,40 +161,42 @@
 
     <div class="container">
         <div class="sidebar">
-            <label>API Key OpenRouteService:</label>
-            <input type="text" id="ors-key" placeholder="Ingresa tu clave ORS">
-            <label>API Key GraphHopper:</label>
-            <input type="text" id="gh-key" placeholder="Ingresa tu clave GraphHopper">
-
             <label>Origen:</label>
-            <input type="text" id="origin" placeholder="Ej: Puerta del Sol, Madrid">
+            <input type="text" id="origin" placeholder="Ej: Parque Montalvo, Ambato">
+            
             <label>Destino:</label>
-            <input type="text" id="destination" placeholder="Ej: Estadio Bernabéu, Madrid">
+            <input type="text" id="destination" placeholder="Ej: Terminal Terrestre, Ambato">
 
             <label>Punto intermedio:</label>
-            <div style="display:flex;">
-                <input type="text" id="waypoint" placeholder="Agregar parada">
-                <button id="add-waypoint" style="width:auto; margin-left:4px;">+</button>
+            <div class="waypoint-container">
+                <input type="text" id="waypoint" placeholder="Ej: Plaza de la Merced, Ambato">
+                <button id="add-waypoint">+</button>
             </div>
 
-            <div id="waypoints-container"></div>
+            <div id="waypoints-container" class="waypoints-list"></div>
 
-            <label>Tipo de vehículo:</label>
-            <select id="vehicle-type">
-                <option value="car">Coche</option>
-                <option value="bike">Bicicleta</option>
-                <option value="foot">A pie</option>
-            </select>
+            <div class="vehicle-section">
+                <label>Tipo de vehículo:</label>
+                <select id="vehicle-type">
+                    <option value="car">Coche</option>
+                    <option value="bike">Bicicleta</option>
+                    <option value="foot">A pie</option>
+                </select>
+            </div>
 
-            <label>Factor de tráfico:</label>
-            <select id="traffic-option">
-                <option value="0">Sin tráfico</option>
-                <option value="10">+10%</option>
-                <option value="20">+20%</option>
-                <option value="30">+30%</option>
-            </select>
+            <div class="traffic-section">
+                <label>Factor de tráfico:</label>
+                <select id="traffic-option">
+                    <option value="0">Sin tráfico</option>
+                    <option value="10">+10%</option>
+                    <option value="20">+20%</option>
+                    <option value="30">+30%</option>
+                </select>
+            </div>
 
-            <button id="calculate">Calcular Rutas</button>
+            <div class="calculate-section">
+                <button id="calculate">Calcular Rutas</button>
+            </div>
 
             <div class="results" id="results"></div>
         </div>
@@ -86,7 +222,8 @@
             container.innerHTML = '';
             waypoints.forEach((wp,i)=>{
                 const div = document.createElement('div');
-                div.textContent = wp;
+                div.className = 'waypoint-item';
+                div.innerHTML = `<span>${wp}</span>`;
                 const btn = document.createElement('button');
                 btn.textContent='X';
                 btn.onclick=()=>{ waypoints.splice(i,1); updateWaypoints(); };
@@ -109,10 +246,10 @@
             const origin = document.getElementById('origin').value;
             const dest = document.getElementById('destination').value;
             const vehicle = document.getElementById('vehicle-type').value;
-            const orsKey = document.getElementById('ors-key').value;
-            const ghKey = document.getElementById('gh-key').value;
+            const orsKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjIwYTAwZTgzZDBmMjQ5NTk4NjM0OGVhMjU3NDY5Mjg2IiwiaCI6Im11cm11cjY0In0=";
+            const ghKey = "a75e2fa4-a114-4d7d-882f-2d761067fb98";
 
-            if(!origin||!dest||!orsKey||!ghKey){ alert('Ingresa origen, destino y ambas API keys'); return; }
+            if(!origin||!dest){ alert('Ingresa origen y destino'); return; }
 
             const points = [origin, ...waypoints, dest];
             const coords = await Promise.all(points.map(geocode));

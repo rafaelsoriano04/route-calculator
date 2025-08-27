@@ -18,8 +18,11 @@
             background: linear-gradient(135deg, #7a8c5a, #4a5c2a);
             color: white;
             padding: 1.5rem;
-            text-align: center;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
         }
         header h1 {
             margin: 0;
@@ -31,6 +34,26 @@
             font-size: 1.1rem;
             opacity: 0.9;
         }
+        .header-actions { display: flex; align-items: center; gap: 0.6rem; }
+        #user-info { font-weight: 600; }
+        header button {
+            padding: 0.6rem 0.9rem;
+            background: linear-gradient(135deg, #8fa573, #6a7c4a);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        header button:hover {
+            background: linear-gradient(135deg, #7a8c5a, #5a6c3a);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        header button.secondary { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        header button.secondary:hover { background: linear-gradient(135deg, #c0392b, #a1281a); }
         .container {
             display: flex;
             flex: 1;
@@ -70,6 +93,14 @@
             background: #fafafa;
             transition: all 0.3s ease;
         }
+        /* Inline layout for vehicle + traffic selects */
+        .options-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .options-row .form-field { flex: 1; }
+        .options-row label { margin-top: 0; }
         .sidebar input:focus,
         .sidebar select:focus {
             outline: none;
@@ -102,6 +133,14 @@
         .modal-content button:active {
             transform: translateY(0);
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        /* Distinct color for history/favorites button */
+        #history-modal-btn {
+            background: linear-gradient(135deg, #b8d7a1, #9ecb82);
+            color: #1f2a16;
+        }
+        #history-modal-btn:hover {
+            background: linear-gradient(135deg, #a8ce92, #8fbe73);
         }
         .sidebar button.secondary,
         .modal-content button.secondary {
@@ -184,7 +223,11 @@
             background: white;
             font-size: 13px;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
+        .route-left { flex: 1; }
         .route-option:hover {
             border-color: #8fa573;
             box-shadow: 0 3px 12px rgba(0,0,0,0.1);
@@ -195,6 +238,32 @@
             background: #eafaf1;
             box-shadow: 0 4px 14px rgba(39, 174, 96, 0.2);
         }
+        .fav-icon-btn {
+            background: transparent;
+            border: none;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 0;
+            cursor: pointer;
+        }
+        /* Override sidebar button defaults for favorite icon */
+        .sidebar .fav-icon-btn,
+        .sidebar .fav-icon-btn:hover,
+        .sidebar .fav-icon-btn:active {
+            width: auto !important;
+            min-width: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+        .fav-icon-btn svg { width: 20px; height: 20px; fill: none; stroke: #e74c3c; stroke-width: 2; }
+        .fav-icon-btn:hover svg { stroke: #c0392b; }
+        .fav-icon-btn.active svg { stroke: #e74c3c; fill: #e74c3c; }
         .modal {
             display: none;
             position: fixed;
@@ -217,6 +286,18 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.3);
             animation: slideIn 0.4s ease;
             position: relative;
+        }
+        /* Login modal: compact side-by-side buttons */
+        #login-modal .login-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 0.25rem;
+        }
+        #login-modal .login-actions button {
+            width: auto;
+            flex: 1;
+            padding: 0.55rem 0.8rem;
+            font-size: 13px;
         }
         .modal-content::before {
             content: '';
@@ -261,19 +342,46 @@
             from { transform: translateY(-30px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+        /* Only sidebar scrolls; keep the rest fixed */
+        body { overflow: hidden; }
+        .sidebar { overflow-y: auto; }
+        /* Compact layout for shorter screens to keep sidebar within viewport */
+        @media (max-height: 900px) {
+            header { padding: 1.1rem; }
+            header h1 { font-size: 1.6rem; }
+            header p { font-size: 1rem; }
+            .sidebar { gap: 0.5rem; padding: 0.8rem; }
+            .sidebar label { margin: 0.35rem 0 0.15rem; font-size: 13px; }
+            .sidebar input, .sidebar select { padding: 0.55rem; font-size: 13px; }
+            .sidebar button { padding: 0.6rem; font-size: 14px; }
+            .waypoints-list { max-height: 90px; }
+            .results { max-height: 150px; }
+            .route-option { padding: 0.6rem; }
+        }
+        @media (max-height: 740px) {
+            .sidebar { gap: 0.4rem; padding: 0.6rem; }
+            .sidebar input, .sidebar select { padding: 0.45rem; font-size: 12px; }
+            .sidebar button { padding: 0.5rem; font-size: 13px; }
+            .waypoints-list { max-height: 70px; }
+            .results { max-height: 120px; }
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Comparador de Rutas Óptimas</h1>
-        <p>OpenRouteService vs GraphHopper</p>
+        <div class="title-group">
+            <h1>Comparador de Rutas Óptimas</h1>
+            <p>OpenRouteService vs GraphHopper</p>
+        </div>
+        <div class="header-actions">
+            <span id="user-info"></span>
+            <button id="logout-btn" style="display:none;" class="secondary">Cerrar Sesión</button>
+        </div>
     </header>
 
     <div class="container">
         <div class="sidebar">
             <button id="login-btn">Iniciar Sesión</button>
-            <button id="logout-btn" style="display:none;" class="secondary">Cerrar Sesión</button>
-            <span id="user-info"></span>
             <button id="history-modal-btn" style="display:none;">Historial y Favoritas</button>
             <label>Origen:</label>
             <input type="text" id="origin" placeholder="Ej: Parque Montalvo, Ambato">
@@ -285,19 +393,25 @@
                 <button id="add-waypoint">+</button>
             </div>
             <div id="waypoints-container" class="waypoints-list"></div>
-            <label>Tipo de vehículo:</label>
-            <select id="vehicle-type">
-                <option value="car">Coche</option>
-                <option value="bike">Bicicleta</option>
-                <option value="foot">A pie</option>
-            </select>
-            <label>Factor de tráfico:</label>
-            <select id="traffic-option">
-                <option value="0">Sin tráfico</option>
-                <option value="10">+10%</option>
-                <option value="20">+20%</option>
-                <option value="30">+30%</option>
-            </select>
+            <div class="options-row">
+                <div class="form-field">
+                    <label>Tipo de vehículo:</label>
+                    <select id="vehicle-type">
+                        <option value="car">Coche</option>
+                        <option value="bike">Bicicleta</option>
+                        <option value="foot">A pie</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Factor de tráfico:</label>
+                    <select id="traffic-option">
+                        <option value="0">Sin tráfico</option>
+                        <option value="10">+10%</option>
+                        <option value="20">+20%</option>
+                        <option value="30">+30%</option>
+                    </select>
+                </div>
+            </div>
             <button id="calculate">Calcular Rutas</button>
             <div class="results" id="results"></div>
         </div>
@@ -311,8 +425,10 @@
             <input type="text" id="username" placeholder="Usuario">
             <label>Contraseña:</label>
             <input type="password" id="password" placeholder="Contraseña">
-            <button id="submit-login">Entrar</button>
-            <button id="cancel-login" class="secondary">Cancelar</button>
+            <div class="login-actions">
+                <button id="submit-login">Entrar</button>
+                <button id="cancel-login" class="secondary">Cancelar</button>
+            </div>
         </div>
     </div>
 
@@ -610,10 +726,21 @@
             adjustedRoutes.forEach((r, i) => {
                 const div = document.createElement('div');
                 div.className = 'route-option' + (i === bestIndex ? ' best-route' : '');
-                div.innerHTML = `<b>${r.api}</b><br>Distancia: ${r.distance} km<br>Duración: ${r.duration} min` + (trafficPercent > 0 ? ' (con tráfico)' : '');
+                const left = document.createElement('div');
+                left.className = 'route-left';
+                left.innerHTML = `<b>${r.api}</b><br>Distancia: ${r.distance} km<br>Duración: ${r.duration} min` + (trafficPercent > 0 ? ' (con tráfico)' : '');
+
                 const favBtn = document.createElement('button');
-                favBtn.textContent = 'Favorito';
+                favBtn.className = 'fav-icon-btn';
+                favBtn.setAttribute('aria-label', 'Marcar como favorito');
+                favBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 21s-6.7-4.35-9.33-7A5.87 5.87 0 0 1 12 5.67 5.87 5.87 0 0 1 21.33 14c-2.63 2.65-9.33 7-9.33 7z"/>
+                    </svg>`;
                 favBtn.onclick = () => {
+                    // Allow only one active favorite button at a time
+                    const allFavs = container.querySelectorAll('.fav-icon-btn');
+                    allFavs.forEach(btn => btn.classList.remove('active'));
                     const favorites = JSON.parse(localStorage.getItem(`favorites_${currentUser.username}`)) || [];
                     const route = {
                         origin: document.getElementById('origin').value,
@@ -626,8 +753,12 @@
                         favorites.push(route);
                         localStorage.setItem(`favorites_${currentUser.username}`, JSON.stringify(favorites));
                         updateFavorites(favorites);
+                        favBtn.classList.add('active');
+                    } else {
+                        favBtn.classList.add('active');
                     }
                 };
+                div.appendChild(left);
                 div.appendChild(favBtn);
                 container.appendChild(div);
             });

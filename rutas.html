@@ -6,150 +6,260 @@
     <title>Comparador de Rutas - OpenRouteService vs GraphHopper</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        body { 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-            margin: 0; 
-            font-family: Arial, sans-serif; 
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f0f2f5;
         }
-        header { 
-            background: #7a8c5a; 
-            color: white; 
-            padding: 1rem; 
-            text-align: center; 
+        header {
+            background: linear-gradient(135deg, #7a8c5a, #4a5c2a);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
-        .container { 
-            display: flex; 
-            flex: 1; 
+        header h1 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: 1px;
         }
-        .sidebar { 
-            width: 350px; 
-            background: white; 
-            padding: 0.75rem; 
-            overflow: hidden; 
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1); 
+        header p {
+            margin: 0.5rem 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .container {
+            display: flex;
+            flex: 1;
+            position: relative;
+        }
+        .sidebar {
+            width: 360px;
+            background: white;
+            padding: 1rem;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.15);
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
+            gap: 0.75rem;
+            z-index: 1000;
         }
-        #map { 
-            flex: 1; 
-            height: 100%; 
+        #map {
+            flex: 1;
+            height: 100%;
         }
         .sidebar label {
             display: block;
-            margin: 0.25rem 0 0.1rem 0;
+            margin: 0.5rem 0 0.2rem;
             font-weight: bold;
             color: #7a8c5a;
-            font-size: 13px;
+            font-size: 14px;
+            letter-spacing: 0.5px;
         }
-        .sidebar input, 
-        .sidebar select { 
-            width: 100%; 
-            margin: 0 0 0.25rem 0; 
-            padding: 0.5rem; 
-            border: 2px solid #e0e0e0; 
-            border-radius: 6px; 
-            font-size: 13px;
+        .sidebar input,
+        .sidebar select {
+            width: 100%;
+            padding: 0.7rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
             box-sizing: border-box;
-            transition: border-color 0.3s ease;
+            background: #fafafa;
+            transition: all 0.3s ease;
         }
-        .sidebar input:focus, 
+        .sidebar input:focus,
         .sidebar select:focus {
             outline: none;
             border-color: #8fa573;
-            box-shadow: 0 0 0 3px rgba(143, 165, 115, 0.1);
+            box-shadow: 0 0 0 4px rgba(143, 165, 115, 0.2);
+            background: white;
         }
-        .sidebar button { 
-            width: 100%; 
-            margin: 0.25rem 0; 
-            padding: 0.5rem; 
-            background: #8fa573; 
-            color: white; 
-            cursor: pointer; 
-            border: none; 
-            border-radius: 6px;
-            font-size: 14px;
+        .sidebar button,
+        .modal-content button {
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, #8fa573, #6a7c4a);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
             font-weight: bold;
-            transition: background-color 0.3s ease;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-        .sidebar button:hover { 
-            background: #7a8c5a; 
+        .sidebar button:hover,
+        .modal-content button:hover {
+            background: linear-gradient(135deg, #7a8c5a, #5a6c3a);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        .sidebar button:active,
+        .modal-content button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .sidebar button.secondary,
+        .modal-content button.secondary {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        .sidebar button.secondary:hover,
+        .modal-content button.secondary:hover {
+            background: linear-gradient(135deg, #c0392b, #a1281a);
         }
         .waypoint-container {
             display: flex;
-            gap: 6px;
-            margin-bottom: 0.25rem;
+            gap: 10px;
+            margin-bottom: 0.5rem;
         }
         .waypoint-container input {
             flex: 1;
-            margin: 0;
         }
         .waypoint-container button {
             width: auto;
-            min-width: 40px;
-            margin: 0;
-            padding: 0.5rem;
+            min-width: 50px;
+            padding: 0.7rem;
+            border-radius: 8px;
         }
         .waypoints-list {
-            margin-bottom: 0.5rem;
-            max-height: 80px;
+            max-height: 120px;
             overflow-y: auto;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
         }
-        .waypoint-item {
+        .waypoint-item,
+        .history-item,
+        .favorite-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.35rem;
-            margin: 0.15rem 0;
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        .waypoint-item button {
-            width: auto;
-            min-width: 25px;
-            margin: 0;
-            padding: 0.2rem 0.4rem;
-            background: #e74c3c;
-            font-size: 11px;
-        }
-        .waypoint-item button:hover {
-            background: #c0392b;
-        }
-        .results { 
-            margin-top: 0.5rem; 
-            flex: 1;
-            overflow-y: auto;
-            min-height: 0;
-        }
-        .route-option { 
-            padding: 0.6rem; 
-            margin-bottom: 0.4rem; 
-            border: 2px solid #e0e0e0; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            transition: all 0.3s ease;
+            padding: 0.6rem;
+            margin: 0.3rem 0;
             background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .waypoint-item:hover,
+        .history-item:hover,
+        .favorite-item:hover {
+            background: #f0f2f5;
+            border-color: #8fa573;
+        }
+        .waypoint-item button,
+        .history-item button,
+        .favorite-item button {
+            width: auto;
+            min-width: 70px;
+            padding: 0.5rem;
             font-size: 12px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        .waypoint-item button:hover,
+        .history-item button:hover,
+        .favorite-item button:hover {
+            background: linear-gradient(135deg, #c0392b, #a1281a);
+        }
+        .results {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 0.75rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .route-option {
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: white;
+            font-size: 13px;
+            transition: all 0.3s ease;
         }
         .route-option:hover {
             border-color: #8fa573;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
         }
-        .best-route { 
-            border: 2px solid #27ae60; 
-            background: #eafaf1; 
-            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.2);
+        .best-route {
+            border: 2px solid #27ae60;
+            background: #eafaf1;
+            box-shadow: 0 4px 14px rgba(39, 174, 96, 0.2);
         }
-        .vehicle-section,
-        .traffic-section {
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.4s ease;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            animation: slideIn 0.4s ease;
+            position: relative;
+        }
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(135deg, #8fa573, #6a7c4a);
+            border-radius: 16px 16px 0 0;
+        }
+        .modal-content h2 {
+            margin: 0 0 1.5rem;
+            font-size: 1.6rem;
+            color: #7a8c5a;
+            text-align: center;
+        }
+        .modal-content label {
+            font-weight: bold;
+            color: #7a8c5a;
+            font-size: 14px;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 0.7rem;
             margin: 0.5rem 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
         }
-        .calculate-section {
-            margin: 0.75rem 0;
+        .modal-content input:focus {
+            outline: none;
+            border-color: #8fa573;
+            box-shadow: 0 0 0 4px rgba(143, 165, 115, 0.2);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
     </style>
 </head>
@@ -161,47 +271,60 @@
 
     <div class="container">
         <div class="sidebar">
+            <button id="login-btn">Iniciar Sesión</button>
+            <button id="logout-btn" style="display:none;" class="secondary">Cerrar Sesión</button>
+            <span id="user-info"></span>
+            <button id="history-modal-btn" style="display:none;">Historial y Favoritas</button>
             <label>Origen:</label>
             <input type="text" id="origin" placeholder="Ej: Parque Montalvo, Ambato">
-            
             <label>Destino:</label>
             <input type="text" id="destination" placeholder="Ej: Terminal Terrestre, Ambato">
-
             <label>Punto intermedio:</label>
             <div class="waypoint-container">
                 <input type="text" id="waypoint" placeholder="Ej: Plaza de la Merced, Ambato">
                 <button id="add-waypoint">+</button>
             </div>
-
             <div id="waypoints-container" class="waypoints-list"></div>
-
-            <div class="vehicle-section">
-                <label>Tipo de vehículo:</label>
-                <select id="vehicle-type">
-                    <option value="car">Coche</option>
-                    <option value="bike">Bicicleta</option>
-                    <option value="foot">A pie</option>
-                </select>
-            </div>
-
-            <div class="traffic-section">
-                <label>Factor de tráfico:</label>
-                <select id="traffic-option">
-                    <option value="0">Sin tráfico</option>
-                    <option value="10">+10%</option>
-                    <option value="20">+20%</option>
-                    <option value="30">+30%</option>
-                </select>
-            </div>
-
-            <div class="calculate-section">
-                <button id="calculate">Calcular Rutas</button>
-            </div>
-
+            <label>Tipo de vehículo:</label>
+            <select id="vehicle-type">
+                <option value="car">Coche</option>
+                <option value="bike">Bicicleta</option>
+                <option value="foot">A pie</option>
+            </select>
+            <label>Factor de tráfico:</label>
+            <select id="traffic-option">
+                <option value="0">Sin tráfico</option>
+                <option value="10">+10%</option>
+                <option value="20">+20%</option>
+                <option value="30">+30%</option>
+            </select>
+            <button id="calculate">Calcular Rutas</button>
             <div class="results" id="results"></div>
         </div>
-
         <div id="map"></div>
+    </div>
+
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <h2>Iniciar Sesión</h2>
+            <label>Usuario:</label>
+            <input type="text" id="username" placeholder="Usuario">
+            <label>Contraseña:</label>
+            <input type="password" id="password" placeholder="Contraseña">
+            <button id="submit-login">Entrar</button>
+            <button id="cancel-login" class="secondary">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="history-modal" class="modal">
+        <div class="modal-content">
+            <h2>Historial y Favoritas</h2>
+            <label>Historial de Rutas:</label>
+            <div id="history-container" class="waypoints-list"></div>
+            <label>Rutas Favoritas:</label>
+            <div id="favorites-container" class="waypoints-list"></div>
+            <button id="close-history-modal" class="secondary">Cerrar</button>
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -211,22 +334,159 @@
 
         let waypoints = [];
         let markers = [], polylines = [], routes = [];
+        let currentUser = null;
+
+        // Login functionality
+        function initLogin() {
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userInfo = document.getElementById('user-info');
+            const loginModal = document.getElementById('login-modal');
+            const submitLogin = document.getElementById('submit-login');
+            const cancelLogin = document.getElementById('cancel-login');
+            const historyModalBtn = document.getElementById('history-modal-btn');
+
+            // Show login modal on page load
+            loginModal.style.display = 'flex';
+
+            currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (currentUser) {
+                loginModal.style.display = 'none';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                userInfo.textContent = `Usuario: ${currentUser.username}`;
+                historyModalBtn.style.display = 'block';
+                loadUserData();
+            }
+
+            loginBtn.addEventListener('click', () => {
+                loginModal.style.display = 'flex';
+            });
+
+            cancelLogin.addEventListener('click', () => {
+                loginModal.style.display = 'none';
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            });
+
+            submitLogin.addEventListener('click', () => {
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value.trim();
+                if (username && password) {
+                    currentUser = { username };
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    loginModal.style.display = 'none';
+                    loginBtn.style.display = 'none';
+                    logoutBtn.style.display = 'block';
+                    userInfo.textContent = `Usuario: ${username}`;
+                    historyModalBtn.style.display = 'block';
+                    loadUserData();
+                } else {
+                    alert('Por favor, ingresa usuario y contraseña');
+                }
+            });
+
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('currentUser');
+                currentUser = null;
+                loginBtn.style.display = 'block';
+                logoutBtn.style.display = 'none';
+                historyModalBtn.style.display = 'none';
+                userInfo.textContent = '';
+                document.getElementById('history-container').innerHTML = '';
+                document.getElementById('favorites-container').innerHTML = '';
+                clearMap();
+                loginModal.style.display = 'flex';
+            });
+        }
+
+        // Modal controls
+        function initModals() {
+            const historyModal = document.getElementById('history-modal');
+            const historyModalBtn = document.getElementById('history-modal-btn');
+            const closeHistoryModal = document.getElementById('close-history-modal');
+
+            historyModalBtn.addEventListener('click', () => {
+                historyModal.style.display = 'flex';
+                loadUserData();
+            });
+
+            closeHistoryModal.addEventListener('click', () => {
+                historyModal.style.display = 'none';
+            });
+        }
+
+        function loadUserData() {
+            if (!currentUser) return;
+            const history = JSON.parse(localStorage.getItem(`history_${currentUser.username}`)) || [];
+            const favorites = JSON.parse(localStorage.getItem(`favorites_${currentUser.username}`)) || [];
+            updateHistory(history);
+            updateFavorites(favorites);
+        }
+
+        function updateHistory(history) {
+            const container = document.getElementById('history-container');
+            container.innerHTML = '';
+            history.forEach((route, i) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `<span>${route.origin} a ${route.destination} (${route.timestamp})</span>`;
+                const btn = document.createElement('button');
+                btn.textContent = 'Cargar';
+                btn.onclick = () => loadRoute(route);
+                div.appendChild(btn);
+                container.appendChild(div);
+            });
+        }
+
+        function updateFavorites(favorites) {
+            const container = document.getElementById('favorites-container');
+            container.innerHTML = '';
+            favorites.forEach((route, i) => {
+                const div = document.createElement('div');
+                div.className = 'favorite-item';
+                div.innerHTML = `<span>${route.origin} a ${route.destination}</span>`;
+                const btn = document.createElement('button');
+                btn.textContent = 'Cargar';
+                btn.onclick = () => loadRoute(route);
+                div.appendChild(btn);
+                container.appendChild(div);
+            });
+        }
+
+        function loadRoute(route) {
+            document.getElementById('origin').value = route.origin;
+            document.getElementById('destination').value = route.destination;
+            document.getElementById('vehicle-type').value = route.vehicle;
+            document.getElementById('traffic-option').value = route.traffic;
+            waypoints = route.waypoints || [];
+            updateWaypoints();
+            document.getElementById('history-modal').style.display = 'none';
+            calculateRoutes();
+        }
 
         document.getElementById('add-waypoint').addEventListener('click', () => {
             const wp = document.getElementById('waypoint').value.trim();
-            if(wp){ waypoints.push(wp); updateWaypoints(); document.getElementById('waypoint').value=''; }
+            if (wp) {
+                waypoints.push(wp);
+                updateWaypoints();
+                document.getElementById('waypoint').value = '';
+            }
         });
 
-        function updateWaypoints(){
+        function updateWaypoints() {
             const container = document.getElementById('waypoints-container');
             container.innerHTML = '';
-            waypoints.forEach((wp,i)=>{
+            waypoints.forEach((wp, i) => {
                 const div = document.createElement('div');
                 div.className = 'waypoint-item';
                 div.innerHTML = `<span>${wp}</span>`;
                 const btn = document.createElement('button');
-                btn.textContent='X';
-                btn.onclick=()=>{ waypoints.splice(i,1); updateWaypoints(); };
+                btn.textContent = 'X';
+                btn.onclick = () => {
+                    waypoints.splice(i, 1);
+                    updateWaypoints();
+                };
                 div.appendChild(btn);
                 container.appendChild(div);
             });
@@ -234,27 +494,38 @@
 
         document.getElementById('calculate').addEventListener('click', calculateRoutes);
 
-        async function geocode(address){
+        async function geocode(address) {
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
             const data = await res.json();
-            if(!data.length) throw new Error(`No encontrado: ${address}`);
-            return {lat:+data[0].lat,lng:+data[0].lon};
+            if (!data.length) throw new Error(`No encontrado: ${address}`);
+            return { lat: +data[0].lat, lng: +data[0].lon };
         }
 
-        async function calculateRoutes(){
+        async function calculateRoutes() {
+            if (!currentUser) {
+                alert('Por favor, inicia sesión para calcular rutas');
+                document.getElementById('login-modal').style.display = 'flex';
+                return;
+            }
             clearMap();
             const origin = document.getElementById('origin').value;
             const dest = document.getElementById('destination').value;
             const vehicle = document.getElementById('vehicle-type').value;
+            const traffic = document.getElementById('traffic-option').value;
             const orsKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjIwYTAwZTgzZDBmMjQ5NTk4NjM0OGVhMjU3NDY5Mjg2IiwiaCI6Im11cm11cjY0In0=";
             const ghKey = "a75e2fa4-a114-4d7d-882f-2d761067fb98";
 
-            if(!origin||!dest){ alert('Ingresa origen y destino'); return; }
+            if (!origin || !dest) {
+                alert('Ingresa origen y destino');
+                return;
+            }
 
             const points = [origin, ...waypoints, dest];
             const coords = await Promise.all(points.map(geocode));
 
-            coords.forEach((c,i)=>{ markers.push(L.marker([c.lat,c.lng]).addTo(map).bindPopup(points[i])); });
+            coords.forEach((c, i) => {
+                markers.push(L.marker([c.lat, c.lng]).addTo(map).bindPopup(points[i]));
+            });
             map.fitBounds(L.featureGroup(markers).getBounds().pad(0.2));
 
             const [orsRoute, ghRoute] = await Promise.all([
@@ -263,84 +534,114 @@
             ]);
 
             routes = [orsRoute, ghRoute];
+
+            // Save to history
+            const history = JSON.parse(localStorage.getItem(`history_${currentUser.username}`)) || [];
+            history.unshift({ origin, destination: dest, waypoints, vehicle, traffic, timestamp: new Date().toLocaleString() });
+            if (history.length > 10) history.pop();
+            localStorage.setItem(`history_${currentUser.username}`, JSON.stringify(history));
+            loadUserData();
+
             displayResults();
         }
 
-        async function routeORS(coords, vehicle, key){
-            let profile = vehicle==='bike'? 'cycling-regular': vehicle==='foot'? 'foot-walking':'driving-car';
-            const res = await fetch(`https://api.openrouteservice.org/v2/directions/${profile}/geojson`,{
-                method:'POST', headers:{'Authorization':key,'Content-Type':'application/json'},
-                body:JSON.stringify({coordinates:coords.map(c=>[c.lng,c.lat])})
+        async function routeORS(coords, vehicle, key) {
+            let profile = vehicle === 'bike' ? 'cycling-regular' : vehicle === 'foot' ? 'foot-walking' : 'driving-car';
+            const res = await fetch(`https://api.openrouteservice.org/v2/directions/${profile}/geojson`, {
+                method: 'POST',
+                headers: { 'Authorization': key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ coordinates: coords.map(c => [c.lng, c.lat]) })
             });
             const data = await res.json();
             const route = data.features[0];
-            const leafletCoords = route.geometry.coordinates.map(c=>[c[1],c[0]]);
-            polylines.push(L.polyline(leafletCoords,{color:'green'}).addTo(map)); // color verde
-            return {api:'OpenRouteService',distance:(route.properties.summary.distance/1000).toFixed(1),duration:(route.properties.summary.duration/60).toFixed(0)};
+            const leafletCoords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+            polylines.push(L.polyline(leafletCoords, { color: 'green' }).addTo(map));
+            return { api: 'OpenRouteService', distance: (route.properties.summary.distance / 1000).toFixed(1), duration: (route.properties.summary.duration / 60).toFixed(0) };
         }
 
-        async function routeGH(coords, vehicle, key){
-            let profile = vehicle==='bike'? 'bike': vehicle==='foot'? 'foot':'car';
-            const points = coords.map(c=>`point=${c.lat},${c.lng}`).join('&');
+        async function routeGH(coords, vehicle, key) {
+            let profile = vehicle === 'bike' ? 'bike' : vehicle === 'foot' ? 'foot' : 'car';
+            const points = coords.map(c => `point=${c.lat},${c.lng}`).join('&');
             const res = await fetch(`https://graphhopper.com/api/1/route?${points}&profile=${profile}&locale=es&key=${key}&instructions=false`);
             const data = await res.json();
             const path = data.paths[0];
             const leafletCoords = decodePolyline(path.points);
-            polylines.push(L.polyline(leafletCoords,{color:'blue'}).addTo(map)); // color azul
-            return {api:'GraphHopper',distance:(path.distance/1000).toFixed(1),duration:(path.time/60000).toFixed(0)};
+            polylines.push(L.polyline(leafletCoords, { color: 'blue' }).addTo(map));
+            return { api: 'GraphHopper', distance: (path.distance / 1000).toFixed(1), duration: (path.time / 60000).toFixed(0) };
         }
 
-        function decodePolyline(encoded){
-            let points=[],index=0,lat=0,lng=0;
-            while(index<encoded.length){
-                let b,shift=0,result=0;
-                do{b=encoded.charCodeAt(index++)-63;result|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);
-                let dlat=((result&1)?~(result>>1):(result>>1));
-                lat+=dlat;
-                shift=0;result=0;
-                do{b=encoded.charCodeAt(index++)-63;result|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);
-                let dlng=((result&1)?~(result>>1):(result>>1));
-                lng+=dlng;
-                points.push([lat*1e-5,lng*1e-5]);
+        function decodePolyline(encoded) {
+            let points = [], index = 0, lat = 0, lng = 0;
+            while (index < encoded.length) {
+                let b, shift = 0, result = 0;
+                do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+                let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+                lat += dlat;
+                shift = 0; result = 0;
+                do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+                let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+                lng += dlng;
+                points.push([lat * 1e-5, lng * 1e-5]);
             }
             return points;
         }
 
-        function displayResults(){
-            const container=document.getElementById('results');
-            container.innerHTML='';
+        function displayResults() {
+            const container = document.getElementById('results');
+            container.innerHTML = '';
             const trafficPercent = parseInt(document.getElementById('traffic-option').value);
 
-            let bestIndex=0; 
-            let bestTime=+routes[0].duration;
+            let bestIndex = 0;
+            let bestTime = +routes[0].duration;
 
-            const adjustedRoutes = routes.map(r=>{
+            const adjustedRoutes = routes.map(r => {
                 let dur = +r.duration;
-                if(trafficPercent>0) dur = Math.round(dur * (1 + trafficPercent/100));
-                return {...r, duration:dur};
+                if (trafficPercent > 0) dur = Math.round(dur * (1 + trafficPercent / 100));
+                return { ...r, duration: dur };
             });
 
-            for(let i=1;i<adjustedRoutes.length;i++){ 
-                if(+adjustedRoutes[i].duration<bestTime){
-                    bestTime=+adjustedRoutes[i].duration;
-                    bestIndex=i;
-                } 
+            for (let i = 1; i < adjustedRoutes.length; i++) {
+                if (+adjustedRoutes[i].duration < bestTime) {
+                    bestTime = +adjustedRoutes[i].duration;
+                    bestIndex = i;
+                }
             }
 
-            adjustedRoutes.forEach((r,i)=>{
-                const div=document.createElement('div');
-                div.className='route-option'+(i===bestIndex?' best-route':'');
-                div.innerHTML=`<b>${r.api}</b><br>Distancia: ${r.distance} km<br>Duración: ${r.duration} min` + (trafficPercent>0?' (con tráfico)':'');
+            adjustedRoutes.forEach((r, i) => {
+                const div = document.createElement('div');
+                div.className = 'route-option' + (i === bestIndex ? ' best-route' : '');
+                div.innerHTML = `<b>${r.api}</b><br>Distancia: ${r.distance} km<br>Duración: ${r.duration} min` + (trafficPercent > 0 ? ' (con tráfico)' : '');
+                const favBtn = document.createElement('button');
+                favBtn.textContent = 'Favorito';
+                favBtn.onclick = () => {
+                    const favorites = JSON.parse(localStorage.getItem(`favorites_${currentUser.username}`)) || [];
+                    const route = {
+                        origin: document.getElementById('origin').value,
+                        destination: document.getElementById('destination').value,
+                        waypoints,
+                        vehicle: document.getElementById('vehicle-type').value,
+                        traffic: document.getElementById('traffic-option').value
+                    };
+                    if (!favorites.some(f => f.origin === route.origin && f.destination === route.destination)) {
+                        favorites.push(route);
+                        localStorage.setItem(`favorites_${currentUser.username}`, JSON.stringify(favorites));
+                        updateFavorites(favorites);
+                    }
+                };
+                div.appendChild(favBtn);
                 container.appendChild(div);
             });
         }
 
-        function clearMap(){ 
-            markers.forEach(m=>map.removeLayer(m)); 
-            markers=[]; 
-            polylines.forEach(p=>map.removeLayer(p)); 
-            polylines=[]; 
+        function clearMap() {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            polylines.forEach(p => map.removeLayer(p));
+            polylines = [];
         }
+
+        initLogin();
+        initModals();
     </script>
 </body>
 </html>
